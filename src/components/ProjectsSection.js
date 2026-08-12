@@ -3,14 +3,14 @@
  *
  * Features:
  * - Fixed Kaggle ML projects
- * - Dynamic fetching of GitHub repositories via GitHub API
+ * - Dynamic fetching of GitHub repositories via GitHub API (Personal & Think & Code)
  * - Category filter tabs: All / ML & Data Science / Mobile Dev / Systems / Web
  * - Responsive 3D glassmorphic grid layout
  */
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Github } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 import ScrollReveal from './ScrollReveal';
 import ProjectCard from './ProjectCard';
@@ -23,6 +23,12 @@ const CATEGORIES = {
   MOBILE: 'Mobile Dev',
   SYSTEMS: 'Systems & OS',
   WEB: 'Web',
+};
+
+/* ── Account Constants ── */
+const ACCOUNTS = {
+  PERSONAL: 'Personal',
+  THINK_AND_CODE: 'Think & Code',
 };
 
 /* ── Hardcoded Kaggle / Fixed Projects ── */
@@ -57,60 +63,39 @@ const KAGGLE_PROJECTS = [
 ];
 
 export default function ProjectsSection() {
+  const [activeAccount, setActiveAccount] = useState(ACCOUNTS.PERSONAL);
   const [activeFilter, setActiveFilter] = useState(CATEGORIES.ALL);
-  const [projects, setProjects] = useState(KAGGLE_PROJECTS);
+  
+  const [personalProjects, setPersonalProjects] = useState(KAGGLE_PROJECTS);
+  const [tcProjects, setTcProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   /* ── Fetch GitHub Projects Dynamically ── */
   useEffect(() => {
     const fetchGitHubProjects = async () => {
       try {
-        const response = await fetch(
-          'https://api.github.com/users/Abdullah-Mehmood-242/repos?per_page=100&sort=updated'
-        );
-        if (!response.ok) throw new Error('Failed to fetch');
+        const [resPersonal, resTC] = await Promise.all([
+          fetch('https://api.github.com/users/Abdullah-Mehmood-242/repos?per_page=100&sort=updated'),
+          fetch('https://api.github.com/users/tcintern-033/repos?per_page=100&sort=updated')
+        ]);
+
+        let githubPersonal = [];
+        let githubTC = [];
+
+        if (resPersonal.ok) {
+          const data = await resPersonal.json();
+          githubPersonal = processRepos(data);
+        }
         
-        const data = await response.json();
-        
-        const githubProjects = data
-          .filter((repo) => !repo.fork) // Exclude forks
-          .map((repo) => {
-            // Attempt to categorize based on language or topics
-            let category = CATEGORIES.WEB;
-            const lang = repo.language?.toLowerCase() || '';
-            const desc = repo.description?.toLowerCase() || '';
-            
-            if (lang === 'python' || lang === 'jupyter notebook' || desc.includes('ml') || desc.includes('classification')) {
-              category = CATEGORIES.ML;
-            } else if (lang === 'dart' || lang === 'kotlin' || desc.includes('android')) {
-              category = CATEGORIES.MOBILE;
-            } else if (lang === 'c++' || lang === 'c' || desc.includes('simulator')) {
-              category = CATEGORIES.SYSTEMS;
-            }
+        if (resTC.ok) {
+          const data = await resTC.json();
+          githubTC = processRepos(data);
+        }
 
-            // Tech stack from language and topics
-            const techStack = [];
-            if (repo.language) techStack.push(repo.language);
-            if (repo.topics) techStack.push(...repo.topics.slice(0, 3)); // Add up to 3 topics
-
-            // Check if it's one of the "featured" github repos based on stars or specific names
-            const isFeatured = repo.stargazers_count > 0 || repo.name.includes('Fault-Tolerant') || repo.name.includes('Under-Byte');
-
-            return {
-              title: repo.name.replace(/-/g, ' '),
-              description: repo.description || 'No description provided.',
-              techStack: techStack.length > 0 ? techStack : ['Code'],
-              url: repo.html_url,
-              featured: isFeatured,
-              category: category,
-            };
-          });
-
-        // Merge Kaggle and GitHub projects
-        setProjects([...KAGGLE_PROJECTS, ...githubProjects]);
+        setPersonalProjects([...KAGGLE_PROJECTS, ...githubPersonal]);
+        setTcProjects(githubTC);
       } catch (error) {
         console.error('Error fetching GitHub projects:', error);
-        // Fallback to just Kaggle projects if API fails
       } finally {
         setLoading(false);
       }
@@ -119,11 +104,48 @@ export default function ProjectsSection() {
     fetchGitHubProjects();
   }, []);
 
+  const processRepos = (repos) => {
+    if (!Array.isArray(repos)) return [];
+    
+    return repos
+      .filter((repo) => !repo.fork)
+      .map((repo) => {
+        let category = CATEGORIES.WEB;
+        const lang = repo.language?.toLowerCase() || '';
+        const desc = repo.description?.toLowerCase() || '';
+        
+        if (lang === 'python' || lang === 'jupyter notebook' || desc.includes('ml') || desc.includes('classification')) {
+          category = CATEGORIES.ML;
+        } else if (lang === 'dart' || lang === 'kotlin' || desc.includes('android')) {
+          category = CATEGORIES.MOBILE;
+        } else if (lang === 'c++' || lang === 'c' || desc.includes('simulator')) {
+          category = CATEGORIES.SYSTEMS;
+        }
+
+        const techStack = [];
+        if (repo.language) techStack.push(repo.language);
+        if (repo.topics) techStack.push(...repo.topics.slice(0, 3));
+
+        const isFeatured = repo.stargazers_count > 0 || repo.name.includes('Fault-Tolerant') || repo.name.includes('Under-Byte');
+
+        return {
+          title: repo.name.replace(/-/g, ' '),
+          description: repo.description || 'No description provided.',
+          techStack: techStack.length > 0 ? techStack : ['Code'],
+          url: repo.html_url,
+          featured: isFeatured,
+          category: category,
+        };
+      });
+  };
+
   /* ── Filter projects by category ── */
+  const currentProjects = activeAccount === ACCOUNTS.PERSONAL ? personalProjects : tcProjects;
+
   const filteredProjects =
     activeFilter === CATEGORIES.ALL
-      ? projects
-      : projects.filter((p) => p.category === activeFilter);
+      ? currentProjects
+      : currentProjects.filter((p) => p.category === activeFilter);
 
   return (
     <section id="projects" className="section">
@@ -133,10 +155,36 @@ export default function ProjectsSection() {
           subtitle="A selection of work across machine learning, mobile, and systems"
         />
 
+        {/* ── Account Toggle ── */}
+        <ScrollReveal>
+          <div className={styles.accountToggle}>
+            {Object.values(ACCOUNTS).map((acc) => (
+              <button
+                key={acc}
+                className={`${styles.accountBtn} ${
+                  activeAccount === acc ? styles.activeAccount : ''
+                }`}
+                onClick={() => {
+                  setActiveAccount(acc);
+                  setActiveFilter(CATEGORIES.ALL);
+                }}
+              >
+                {acc}
+              </button>
+            ))}
+          </div>
+        </ScrollReveal>
+
         {/* ── Category Filter Tabs ── */}
         <ScrollReveal>
           <div className={styles.filters}>
-            {Object.values(CATEGORIES).map((cat) => (
+            {Object.values(CATEGORIES)
+              .filter(
+                (cat) =>
+                  activeAccount === ACCOUNTS.PERSONAL ||
+                  (cat !== CATEGORIES.MOBILE && cat !== CATEGORIES.SYSTEMS)
+              )
+              .map((cat) => (
               <button
                 key={cat}
                 className={`${styles.filterBtn} ${
@@ -150,6 +198,23 @@ export default function ProjectsSection() {
           </div>
         </ScrollReveal>
 
+        {/* ── GitHub Link for Think & Code ── */}
+        {activeAccount === ACCOUNTS.THINK_AND_CODE && (
+          <ScrollReveal>
+            <div className={styles.tcLinkWrapper}>
+              <a
+                href="https://github.com/tcintern-033?tab=repositories"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.tcLink}
+              >
+                <Github size={18} />
+                View Think & Code GitHub Profile
+              </a>
+            </div>
+          </ScrollReveal>
+        )}
+
         {/* ── Loading State ── */}
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
@@ -158,17 +223,23 @@ export default function ProjectsSection() {
         ) : (
           /* ── Project Cards Grid ── */
           <div className={styles.grid}>
-            {filteredProjects.map((project, index) => (
-              <ScrollReveal key={project.url || project.title} delay={(index % 3) * 60}>
-                <ProjectCard
-                  title={project.title}
-                  description={project.description}
-                  techStack={project.techStack}
-                  url={project.url}
-                  featured={project.featured}
-                />
-              </ScrollReveal>
-            ))}
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project, index) => (
+                <ScrollReveal key={project.url || project.title} delay={(index % 3) * 60}>
+                  <ProjectCard
+                    title={project.title}
+                    description={project.description}
+                    techStack={project.techStack}
+                    url={project.url}
+                    featured={project.featured}
+                  />
+                </ScrollReveal>
+              ))
+            ) : (
+              <div className={styles.noProjects}>
+                <p>No projects found for this category.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

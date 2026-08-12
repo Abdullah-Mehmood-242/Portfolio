@@ -2,6 +2,43 @@
    ProjectsSection Module Styles
    ========================================================================== */
 
+/* ── Account Toggle ── */
+.accountToggle {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.accountBtn {
+  padding: 0.6rem 1.5rem;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.accountBtn:hover {
+  color: var(--color-text-primary);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  transform: translateY(-2px);
+}
+
+.accountBtn.activeAccount {
+  color: var(--color-bg-primary);
+  background: var(--color-text-primary);
+  border-color: var(--color-text-primary);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+}
+
 /* ── Filter Buttons ── */
 .filters {
   display: flex;
@@ -38,11 +75,47 @@
   border-color: var(--color-text-primary);
 }
 
+/* ── Think & Code Link ── */
+.tcLinkWrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3xl);
+  margin-top: calc(-1 * var(--space-xl));
+}
+
+.tcLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.tcLink:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 /* ── Projects Grid ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-xl);
+}
+
+.noProjects {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
 }
 
 /* ── Responsive ── */
@@ -64,5 +137,15 @@
   .filterBtn {
     font-size: 0.78rem;
     padding: 0.4rem 1rem;
+  }
+
+  .accountToggle {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .accountBtn {
+    width: 100%;
+    max-width: 250px;
   }
 }
