@@ -192,7 +192,9 @@ export default function ProjectsSection() {
                 }`}
                 onClick={() => setActiveFilter(cat)}
               >
-                {cat}
+                {activeAccount === ACCOUNTS.THINK_AND_CODE && cat === CATEGORIES.ML 
+                  ? 'AI & ML' 
+                  : cat}
               </button>
             ))}
           </div>
